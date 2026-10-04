@@ -33,6 +33,9 @@ select text / open the panel in Koodo
 - **Selection translate / dictionary handled by the agent** — you get the agent's answer, not machine translation
 - **Visible progress** — while the agent runs tools the panel shows `step N · tool: what it is doing · elapsed`
 - **Always on** — after starting through the launcher the panel is there from launch, and it survives Koodo's renderer reload when you go back to the bookshelf
+- **Interrupted turns are recovered** — questions and answers are persisted as they happen; if the page is
+  reloaded mid-turn (the agent does that itself to verify writes), the panel asks the gateway for that
+  turn's answer on its next injection and marks it as recovered
 - **Non-invasive** — no file inside Koodo is modified; remove the launcher and you are back to stock Koodo
 
 ## How it works

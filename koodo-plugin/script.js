@@ -21,7 +21,7 @@
   var DEFAULT_ENDPOINT = "http://127.0.0.1:8317/v1/chat/completions";
   var HOST_ID = "koodo-dsh-agent-host";
   var HISTORY_KEY = "koodoDshAgentHistory";
-  var PANEL_VERSION = 2; // 改动面板结构时 +1，下次 eval 会自动替换旧面板
+  var PANEL_VERSION = 3; // 改动面板结构/行为时 +1，下次 eval 会自动替换旧面板
 
   // 跨多次 eval 共享的状态
   var S = (W.__dshAgentState = W.__dshAgentState || {});
@@ -52,11 +52,17 @@
   }
 
   /** 流式：边到边回调，给聊天面板用。onProgress 收网关的 dsh 进度帧 */
-  async function askStream(question, onDelta, onProgress) {
+  async function askStream(question, onDelta, onProgress, turnId) {
     var res = await fetch(S.endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: "Bearer koodo-plugin" },
-      body: JSON.stringify({ model: "dsh-agent", stream: true, messages: [{ role: "user", content: question }] }),
+      body: JSON.stringify({
+        model: "dsh-agent",
+        stream: true,
+        // 借 OpenAI 兼容请求的 user 字段当 turnId：页面被重载后，网关靠它把这一轮认出来
+        user: turnId,
+        messages: [{ role: "user", content: question }],
+      }),
     });
     if (!res.ok) throw new Error("网关返回 HTTP " + res.status + "：" + (await res.text()).slice(0, 200));
     var reader = res.body.getReader();
@@ -209,9 +215,29 @@
     var statusEl = $("st");
 
     var history = loadHistory();
+    // 渲染历史。助手条目可能是空的 —— 说明那一轮被中断过。
+    // 这不是罕见情况：智能体为了核验落盘，会自己调 Koodo 的 reload-main 重载页面，
+    // 那一下会打断面板正在读的流。所以下面要问网关把那一轮的回答要回来。
+    var lastAssistantEl = null;
     history.forEach(function (h) {
-      addMsg(h.role === "user" ? "u" : "a", h.content);
+      var el = addMsg(
+        h.role === "user" ? "u" : "a",
+        h.content || (h.role === "assistant" ? "（该轮被中断）" : "")
+      );
+      if (h.role === "assistant") lastAssistantEl = el;
     });
+    if (
+      history.length >= 2 &&
+      history[history.length - 1].role === "assistant" &&
+      !history[history.length - 1].content
+    ) {
+      var q = history[history.length - 2];
+      if (q.role === "user") {
+        setTimeout(function () {
+          recoverTurn(q.content, q.turnId, lastAssistantEl);
+        }, 800);
+      }
+    }
 
     function addMsg(kind, text) {
       var d = document.createElement("div");
@@ -236,12 +262,70 @@
       }
     }
 
+    /**
+     * 上一轮被中断（页面被重载、面板被重新注入）时，从网关把回答补回来。
+     * 网关记住了最后一次 turn（问题 + 累积的回答 + 状态），所以即使 HTTP 流断了，
+     * 服务端跑完的结果也不会丢。
+     */
+    async function recoverTurn(question, turnId, el) {
+      var base = baseUrl();
+      var t = null;
+      try {
+        var info = await (await fetch(base + "/koodo/last", { cache: "no-store" })).json();
+        t = info && info.lastTurn;
+      } catch (e) {
+        return; // 网关不通就算了，别打扰用户
+      }
+      if (!t) return;
+      var sameTurn = turnId
+        ? t.turnId === turnId
+        : t.question === question || String(t.question || "").endsWith(question);
+      if (!sameTurn) return; // 不是同一轮，不乱补
+
+      var waited = 0;
+      while (t.status === "running" && waited < 900000) {
+        if (el) el.textContent = "…（该轮仍在网关侧运行，完成后自动补回）";
+        await new Promise(function (r) {
+          setTimeout(r, 3000);
+        });
+        waited += 3000;
+        try {
+          var again = await (await fetch(base + "/koodo/last", { cache: "no-store" })).json();
+          t = again && again.lastTurn;
+        } catch (e) {
+          return;
+        }
+        if (!t) return;
+      }
+      if (!t.answer) return;
+
+      var text = t.answer + "\n\n（该轮曾被中断，回答由网关补回）";
+      if (el) el.textContent = text;
+      else addMsg("a", text);
+
+      var last = history[history.length - 1];
+      if (last && last.role === "assistant" && !last.content) {
+        last.content = t.answer;
+        last.recovered = true;
+      } else {
+        history.push({ role: "assistant", content: t.answer, recovered: true });
+      }
+      saveHistory(history);
+    }
+
     async function submit() {
       var text = input.value.trim();
       if (!text) return;
       input.value = "";
       addMsg("u", text);
-      history.push({ role: "user", content: text });
+
+      // 提问和空的回答占位**立刻落盘**。原因见上面渲染历史那段注释：
+      // 智能体中途重载页面时，这一轮如果不先存下来就永远写不回去了。
+      var turnId = "kq-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+      history.push({ role: "user", content: text, turnId: turnId });
+      var asst = { role: "assistant", content: "", turnId: turnId };
+      history.push(asst);
+      saveHistory(history);
 
       var question = text;
       if (useCtx.checked) {
@@ -255,6 +339,7 @@
       var gotText = false;
       var startedAt = Date.now();
       var lastProgress = { phase: "start" };
+      var lastSaveAt = 0;
 
       // 秒表 + 进度：智能体连跑几十个工具步骤时，正文可能很久不出一句话
       function renderStatus() {
@@ -282,23 +367,36 @@
           function (d) {
             gotText = true;
             acc += d;
+            asst.content = acc; // 同一个对象，流式期间就跟着更新
             target.textContent = acc;
             msgs.scrollTop = msgs.scrollHeight;
+            // 流式期间也定期落盘：万一中途被重载，至少留下已经收到的部分
+            var now = Date.now();
+            if (now - lastSaveAt > 800) {
+              lastSaveAt = now;
+              saveHistory(history);
+            }
             renderStatus();
           },
           function (p) {
             lastProgress = p || {};
             renderStatus();
-          }
+          },
+          turnId
         );
-        if (!acc) target.textContent = "（智能体没有返回内容）";
+        if (!acc) {
+          target.textContent = "（智能体没有返回内容）";
+          asst.content = "";
+        }
         statusEl.textContent = "完成 · 用时 " + Math.round((Date.now() - startedAt) / 1000) + "s";
         statusEl.className = "st";
-        history.push({ role: "assistant", content: acc });
         saveHistory(history);
         setDot("ok", "网关正常");
       } catch (e) {
-        target.textContent = "出错了：" + (e && e.message ? e.message : String(e));
+        target.textContent =
+          (acc ? acc + "\n\n" : "") + "出错了：" + (e && e.message ? e.message : String(e));
+        asst.content = acc; // 保留已收到的部分
+        saveHistory(history);
         statusEl.textContent = "";
         setDot("bad", "请求失败");
       } finally {

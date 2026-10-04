@@ -65,7 +65,7 @@ export function bootstrapFor(panelPath) {
 }
 
 /** 组装一个符合 Koodo 规范的插件对象 */
-export function buildPlugin({ type, displayName, script, endpoint, icon, version = "1.0.0" }) {
+export function buildPlugin({ type, displayName, script, endpoint, icon, version = "1.0.1" }) {
   if (!PLUGIN_TYPES.includes(type)) throw new Error(`不支持的插件类型：${type}`);
   return {
     identifier: `koodo-dsh-agent-${type}`,

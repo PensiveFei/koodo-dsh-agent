@@ -66,6 +66,47 @@ const stamp = () => new Date().toISOString().slice(11, 19);
 const log = (...a) => console.error(`[koodo-gw ${stamp()}]`, ...a);
 const vlog = (...a) => CFG.verbose && log(...a);
 
+/**
+ * 记住最后一次 turn：问题 + 累积回答 + 状态。
+ *
+ * 为什么需要：面板的 HTTP 流可能被中途打断 —— 智能体为了核验落盘会自己调 Koodo 的
+ * reload-main 重载页面，那一下面板就读不到了。但服务端这一轮仍在跑，跑完的结果不该丢。
+ * 面板下次注入时会用 turnId 来这里补回（见 koodo-plugin/script.js 的 recoverTurn）。
+ */
+const LAST_TURN_FILE = path.join(HERE, "last-turn.json");
+let lastTurn = null;
+try {
+  if (fs.existsSync(LAST_TURN_FILE)) lastTurn = JSON.parse(fs.readFileSync(LAST_TURN_FILE, "utf8"));
+} catch {}
+let lastTurnSavedAt = 0;
+function persistLastTurn(force) {
+  const now = Date.now();
+  if (!force && now - lastTurnSavedAt < 1000) return;
+  lastTurnSavedAt = now;
+  try {
+    fs.writeFileSync(LAST_TURN_FILE, JSON.stringify(lastTurn), "utf8");
+  } catch {}
+}
+function beginTurn({ turnId, question, stream }) {
+  lastTurn = {
+    turnId: turnId || null,
+    question,
+    answer: "",
+    stream: !!stream,
+    status: "running",
+    startedAt: Date.now(),
+    finishedAt: null,
+  };
+  persistLastTurn(true);
+}
+function endTurn(status, answer) {
+  if (!lastTurn) return;
+  if (typeof answer === "string") lastTurn.answer = answer;
+  lastTurn.status = status;
+  lastTurn.finishedAt = Date.now();
+  persistLastTurn(true);
+}
+
 /* ------------------------------------------------------------------ */
 /* DSH 运行时：一个子进程 + stdio JSON-RPC                              */
 /* ------------------------------------------------------------------ */
@@ -437,6 +478,11 @@ const server = http.createServer(async (req, res) => {
     return json(res, 200, { ok: true, message: "已重置会话，下一轮开启新会话" });
   }
 
+  // 面板在重载后用它补回被中断的那一轮
+  if (req.method === "GET" && url.pathname === "/koodo/last") {
+    return json(res, 200, { ok: true, lastTurn });
+  }
+
   if (req.method === "POST" && url.pathname === "/koodo/shutdown") {
     // 等响应真正写出去再拆运行时并退出，避免"接口回了 ok 但进程还活着"
     res.on("finish", () => {
@@ -464,10 +510,12 @@ const server = http.createServer(async (req, res) => {
 
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const blocks = toContentBlocks(messages);
-  const preview = blocks
-    .map((b) => (b.type === "text" ? b.text : "<image>"))
-    .join(" ")
-    .slice(0, 120);
+  const questionText = blocks
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+  const turnId = typeof body.user === "string" ? body.user : null; // 面板把 turnId 放在 OpenAI 的 user 字段里
+  const preview = questionText.replace(/\s+/g, " ").slice(0, 120);
   log(
     `收到请求 stream=${!!body.stream} model=${body.model ?? "(未指定)"} 提示长度=${JSON.stringify(blocks).length} 预览=${JSON.stringify(preview)}`
   );
@@ -490,11 +538,14 @@ const server = http.createServer(async (req, res) => {
   const created = Math.floor(Date.now() / 1000);
 
   if (!body.stream) {
+    beginTurn({ turnId, question: questionText, stream: false });
     try {
       const text = await runtime.runTurn(blocks, () => {});
+      endTurn("done", text);
       return json(res, 200, completionFrame(text, id, created));
     } catch (e) {
       log("非流式请求失败:", e.message);
+      endTurn("error");
       return json(res, 502, { error: { message: e.message, type: "upstream_error" } });
     }
   }
@@ -511,7 +562,6 @@ const server = http.createServer(async (req, res) => {
       res.write(`data: ${JSON.stringify(progressFrame(p, id, created))}\n\n`);
     } catch {}
   };
-
   // 先给一个 role 帧，符合 OpenAI 习惯
   res.write(
     `data: ${JSON.stringify({
@@ -523,8 +573,19 @@ const server = http.createServer(async (req, res) => {
     })}\n\n`
   );
 
+  beginTurn({ turnId, question: questionText, stream: true });
+  // 边发边记：面板即使中途断线，网关这边仍留着已经产生的回答
+  const writeAndRemember = (text) => {
+    if (lastTurn) {
+      lastTurn.answer += text;
+      persistLastTurn(false);
+    }
+    write(text);
+  };
+
   try {
-    await runtime.runTurn(blocks, write, writeProgress);
+    await runtime.runTurn(blocks, writeAndRemember, writeProgress);
+    endTurn("done");
     res.write(
       `data: ${JSON.stringify({
         id,
@@ -539,6 +600,7 @@ const server = http.createServer(async (req, res) => {
     log("本轮完成，已发送 [DONE]");
   } catch (e) {
     log("流式请求失败:", e.message);
+    endTurn("error");
     try {
       write(`\n[网关错误] ${e.message}\n`);
       res.write("data: [DONE]\n\n");

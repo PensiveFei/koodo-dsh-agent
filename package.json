@@ -1,6 +1,6 @@
 {
   "name": "koodo-dsh-agent",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Bring the DeepSeek Harness agent into Koodo Reader",
   "keywords": ["koodo-reader", "deepseek-harness", "agent", "ebook", "plugin"],
