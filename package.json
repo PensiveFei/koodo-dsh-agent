@@ -1,0 +1,17 @@
+{
+  "name": "koodo-dsh-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bring the DeepSeek Harness agent into Koodo Reader",
+  "keywords": ["koodo-reader", "deepseek-harness", "agent", "ebook", "plugin"],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "node install.mjs",
+    "check": "node tests/check.mjs",
+    "test": "node tests/hook-test.mjs",
+    "test:live": "node tests/hook-test.mjs --live"
+  }
+}

@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # 这个项目按平台分支处理路径（Windows 用 .cmd / 调试端口，mac/Linux 用 .sh），
+  # 所以「三平台同等支持」这句话得靠三平台各跑一遍撑着 —— 只在一个平台跑不算数。
+  check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # 语法、插件格式（哈希往返 / 粘贴安全 / 字段齐全 / 默认安装产出纯 ASCII）、本地路径泄露扫描
+      - name: Offline self-check
+        run: node tests/check.mjs
+
+      # 面板脚本能 eval、可重复 eval、两个钩子已注册、引导脚本能自证
+      - name: Hook contract tests (offline)
+        run: node tests/hook-test.mjs

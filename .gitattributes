@@ -1,0 +1,10 @@
+# 统一成 LF：插件脚本的内容会被现算 SHA-256，行尾在不同平台来回转换容易埋坑
+* text=auto eol=lf
+
+# 生成器写出的 .cmd 需要 CRLF，但那些文件不进仓库（install.mjs 运行时生成）
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zstd binary

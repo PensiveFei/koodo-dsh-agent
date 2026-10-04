@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Koodo Reader itself (reader UI, book formats, sync)
+    url: https://github.com/koodo-reader/koodo-reader/issues
+    about: Bugs in Koodo Reader's own features belong upstream, not here.
+  - name: DeepSeek Harness (the agent backend)
+    url: https://github.com/deepseek-ai/DeepSeek-Harness/discussions
+    about: Questions about DSH, profiles, plugins or models.

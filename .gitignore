@@ -1,0 +1,18 @@
+# 依赖与运行时生成物
+node_modules/
+runtime/
+config.json
+supervisor.log
+*.log
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+_tmp/
+*.tmp
+*.bak
