@@ -20,12 +20,12 @@
 
 ## 实际效果
 
-| ![智能体面板](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-panel.png) | ![进度反馈](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-progress.png) |
+| ![实机演示 ①](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-1.png) | ![实机演示 ②](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-2.png) |
 | --- | --- |
-| 悬浮智能体面板：阅读界面右下角，可拖动、流式作答<br>（图中问的是《红楼梦》里的「通灵」） | 进度反馈：智能体跑工具时显示<br>`第 1 步 · glob：README.md · 1s` |
+| 实机演示 ① | 实机演示 ② |
 
-> 两张都**裁剪到只含面板区域**，故意不带书库/书名。
-> 想要「面板浮在阅读界面上」的整屏效果图，自己截一张放进 `docs/showcase/` 即可（见该目录的 README）。
+> 两张都是在 Koodo Reader 里实际运行的截图。
+> 想加更多截图，放进 `docs/showcase/` 即可（命名与引用方式见该目录的 README）。
 
 ## 能做什么
 
