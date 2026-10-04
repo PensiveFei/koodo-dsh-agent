@@ -24,9 +24,6 @@ select text / open the panel in Koodo
 | --- | --- |
 | Real-machine screenshot ① | Real-machine screenshot ② |
 
-> Both were taken while running inside Koodo Reader.
-> To add your own, drop a file into `docs/showcase/` (see the README there for naming).
-
 ## What it does
 
 - **Floating agent panel** — streaming replies, draggable, chat history kept locally; the current page text is attached to your question by default, so "what does this passage mean?" just works
@@ -189,8 +186,8 @@ The official plugin list (`api.koodoreader.com/api/get_plugins`) has 37 plugins 
 13 dictionary, 13 TTS — and **no agent or chat plugin**. Koodo's own AI stops at one-shot Q&A
 (translation, dictionary, assistant) with **no tool calling and no filesystem access**.
 
-The closest prior art is KOReader's [koassistant.koplugin](https://github.com/zeeyado/koassistant.koplugin)
-and Obsidian's Claudian-style plugins — the same idea of embedding an agent into a reading environment.
+The closest prior art is Obsidian's [Claudian](https://github.com/YishenTu/claudian) — embedding an
+agent into a writing environment.
 
 ## Gotchas
 

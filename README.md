@@ -24,9 +24,6 @@
 | --- | --- |
 | 实机演示 ① | 实机演示 ② |
 
-> 两张都是在 Koodo Reader 里实际运行的截图。
-> 想加更多截图，放进 `docs/showcase/` 即可（命名与引用方式见该目录的 README）。
-
 ## 能做什么
 
 - **悬浮智能体面板**：点开即聊，流式输出，可拖动，对话历史本地留存；提问时默认把**当前页文本**一起带上，所以它能回答「这段什么意思」
@@ -197,9 +194,8 @@ node install.mjs --shortcut                                   # 顺带建桌面�
 **没有任何智能体 / 对话类**。Koodo 官方的 AI 能力停在「一问一答」（翻译、词典、助手），
 **没有工具调用，碰不到文件系统**。
 
-本项目补的是这一层。最接近的同类是 **KOReader 的
-[koassistant.koplugin](https://github.com/zeeyado/koassistant.koplugin)**（另一个阅读器的 AI 助手插件）
-和 Obsidian 的 Claudian 系插件 —— 都是「把智能体嵌进阅读/写作环境」这个方向。
+本项目补的是这一层。最接近的同类是 Obsidian 的
+[Claudian](https://github.com/YishenTu/claudian) —— 把智能体嵌进写作环境的方向。
 
 ## 踩过的坑
 
