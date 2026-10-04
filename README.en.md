@@ -20,11 +20,12 @@ select text / open the panel in Koodo
 
 ## Showcase
 
-<!-- placeholder: drop screenshots into docs/showcase/ and uncomment -->
-
-| <!-- ![agent panel](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-panel.png) --> | <!-- ![translate](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-translate.png) --> |
+| ![agent panel](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-panel.png) | ![progress](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-progress.png) |
 | --- | --- |
-| Agent panel, bottom-right of the reader | Selection translation answered by the agent |
+| The floating agent panel in the bottom-right of the reader:<br>draggable, streaming (the question asks about "通灵" in *Dream of the Red Chamber*) | Progress feedback while the agent runs tools:<br>`step 1 · glob: README.md · 1s` |
+
+> Both are **cropped to the panel only**, deliberately excluding any library content.
+> For an in-context shot with the panel over the reader, take your own and drop it into `docs/showcase/`.
 
 ## What it does
 

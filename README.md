@@ -20,13 +20,12 @@
 
 ## 实际效果
 
-<!-- 截图占位：把图片放进 docs/showcase/ 后取消注释并替换文件名 -->
-
-| <!-- ![智能体面板](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-panel.png) --> | <!-- ![划词翻译](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-translate.png) --> |
+| ![智能体面板](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-panel.png) | ![进度反馈](https://raw.githubusercontent.com/PensiveFei/koodo-dsh-agent/main/docs/showcase/showcase-progress.png) |
 | --- | --- |
-| 阅读界面右下角的智能体面板 | 划词翻译由智能体接管 |
+| 悬浮智能体面板：阅读界面右下角，可拖动、流式作答<br>（图中问的是《红楼梦》里的「通灵」） | 进度反馈：智能体跑工具时显示<br>`第 1 步 · glob：README.md · 1s` |
 
-<!-- 上面两行是占位。等你给截图后，我会把注释去掉、填上真实文件名与说明。 -->
+> 两张都**裁剪到只含面板区域**，故意不带书库/书名。
+> 想要「面板浮在阅读界面上」的整屏效果图，自己截一张放进 `docs/showcase/` 即可（见该目录的 README）。
 
 ## 能做什么
 
